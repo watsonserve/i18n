@@ -1,0 +1,12 @@
+{
+  "name": "translate",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": ["srv", "fe"],
+  "scripts": {
+    "start": "yarn workspace fe start",
+    "srv": "yarn workspace srv build",
+    "fe": "yarn workspace fe build",
+    "build": "yarn srv && yarn fe"
+  }
+}
