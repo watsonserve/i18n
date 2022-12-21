@@ -35,7 +35,11 @@ async function gen() {
   app.use('/api', apiRouter);
 
   // catch 404 and forward to error handler
-  app.use((req, res, next) => next(createError(404)));
+  app.use((req: any, res: any, next: any) => {
+    if (req.url.startsWith('/api/')) return next(createError(404));
+
+    res.sendFile(path.join(__dirname, 'www', 'index.html'));
+  });
 
   // error handler
   app.use((err: any, _, res: any) => {
