@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import mongoose from 'mongoose';
-const Schema = mongoose.Schema;
+import { WordDraftModel, WordModel } from './schema';
 
 interface IWordModel {
   prefix: string;
@@ -10,43 +9,11 @@ interface IWordModel {
   value: string;
 }
 
-function wrapArray(foo: any | any[]): any[] | undefined {
+function wrapArray<T>(foo?: T | T[]): T[] | undefined {
   if (!foo) return undefined;
   let ret = (Array.isArray(foo) ? foo : [foo]).filter(i => i);
   return ret.length ? ret : undefined;
 }
-
-mongoose.connect('mongodb://localhost/translate');
-
-// const ObjectId = Schema.ObjectId;
-const wordModel = new Schema({
-prefix: {
-    type: String,
-    idnex: true,
-    required: true,
-    background: true
-},
-language: {
-    type: String,
-    idnex: true,
-    required: true,
-    background: true
-},
-key: {
-    type: String,
-    idnex: true,
-    required: true,
-    background: true
-},
-value: {
-    type: String,
-    idnex: true,
-    sparse: true,
-    background: true
-}
-});
-
-const WordModel = mongoose.model('translate', wordModel);
 
 export async function insert(params: IWordModel) {
   const { prefix, language, key, value = '' } = params;
@@ -58,20 +25,32 @@ export async function insert(params: IWordModel) {
   }
 
   // check have a same data row in database
-  const doc = await WordModel.findOne({ prefix, language, key });
-  if (null !== doc) return { stat: -1, msg: 'same' };
+  const [doc0, doc1] = await Promise.all([
+    WordDraftModel.findOne({ prefix, language, key }),
+    WordModel.findOne({ prefix, language, key })
+  ]);
+  if (null !== doc0 || null !== doc1) return { stat: -1, msg: 'same' };
 
   // save
-  await new WordModel({ prefix, language, key, value }).save();
+  await new WordDraftModel({ prefix, language, key, value }).save();
   return { stat: 0, msg: 'success' };
 }
 
-export async function modify(params: any) {
+interface IModify {
+  id: string;
+  prefix: string;
+  oldKey: string;
+  key: string;
+  value: string;
+}
+
+export async function modify(params: IModify) {
   const { id, prefix, oldKey, key, value = '' } = params;
 
   // modify a value
   if (id) {
-    await WordModel.updateOne({ _id: id }, { value });
+    const doc = await WordModel.findById(id);
+    await WordDraftModel.updateOne({ _id: id }, { ...doc, value });
     return { stat: 0, msg: 'success' };
   }
 
@@ -91,22 +70,32 @@ export async function modify(params: any) {
   return !modifiedCount ? { stat: 404, msg: `key ${oldKey} not found` } : { stat: 0, msg: 'success' };
 }
 
-export async function remove(ids: string | string[] = []) {
+export async function remove(ids: string | string[] = [], isDraft = false) {
   if (!Array.isArray(ids)) {
     ids = [ids];
   }
   ids = ids.filter(i => i);
   if (!ids.length) return { stat: -1, msg: 'id is required' };
-  await WordModel.remove({ _id: { $in: ids }});
+  await (isDraft ? WordDraftModel : WordModel).remove({ _id: { $in: ids }});
   return { stat: 0, msg: 'success' };
 }
 
-export async function select(params: any) {
-  let { language, prefix, key, value, pageNo = 0, pageSize = 0 } = params;
+interface ISelectQuery {
+  language?: string | string[];
+  prefix?: string | string[];
+  key: string;
+  value: string;
+  pageNo: number;
+  pageSize: number;
+  isDraft?: boolean;
+}
+
+export async function select(params: ISelectQuery) {
+  let { language, prefix, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
   const filter: { [k:string]: any } = {};
 
-  language = wrapArray(language);
-  prefix = wrapArray(prefix);
+  language = wrapArray<string>(language);
+  prefix = wrapArray<string>(prefix);
 
   language && (filter.language = { $in: language });
   prefix && (filter.prefix = { $in: prefix });
@@ -115,7 +104,11 @@ export async function select(params: any) {
   value && (filter.value = new RegExp(value, 'i'));
 
   const offset = ((+pageNo < 1 ? 1 : +pageNo) - 1) * +pageSize;
-  const docs = await WordModel.find(filter).skip(offset).limit(+pageSize);
+  const model = isDraft ? WordDraftModel : WordModel;
+  const [docs, total] = await Promise.all([
+    model.find(filter).skip(offset).limit(+pageSize),
+    model.count(filter)
+  ]);
 
   return {
     stat: 0,
@@ -125,7 +118,7 @@ export async function select(params: any) {
         const { _id, __v, ...word } = item._doc;
         return { id: _id, ...word };
       }),
-      total: 200
+      total
     }
   };
 }
@@ -133,10 +126,13 @@ export async function select(params: any) {
 export async function publish({ prefix, language }: any) {
   if (!prefix || !language) return { stat: -1, msg: 'data not found' };
 
-  const docs = await WordModel.find({ prefix, language });
+  const [_docs, docs] = await Promise.all([
+    WordModel.find({ prefix: '_', language }),
+    WordModel.find({ prefix, language })
+  ]);
 
   // export default (()=>{const _dict={};return k=>(_dict[k]||k)})()
-  const result = docs.reduce((pre, item) => {
+  const result = _docs.concat(docs).reduce((pre, item) => {
     pre[item.key] = item.value;
     return pre;
   }, {} as { [k: string]: string} );

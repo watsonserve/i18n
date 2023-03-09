@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Layout, Space, Button, Popconfirm, Message } from '@arco-design/web-react';
 import DataView, { ITableMod } from './DataView';
 import { ITableReq } from '../api/types';
-import { loadTable } from '../api';
+import { loadTable, publish } from '../api';
 
 const Header = Layout.Header;
 const Content = Layout.Content;
@@ -25,9 +25,10 @@ export default function DictPage() {
     _loadTable({ pageNo: 1, pageSize: 20 });
   }, [_loadTable]);
 
-  const handleRelease = () => {
+  const handleRelease = async () => {
     Message.info({ content: 'ok' });
     console.log(tableSelected);
+    await publish(tableSelected);
     setTableSelect([]);
   };
 

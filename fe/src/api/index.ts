@@ -94,6 +94,10 @@ export function alter(data: any) {
   return request({ feat: '/api/dict', method: Method.POST, data });
 }
 
+export function publish(ids: string[]) {
+  return request({ feat: '/api/publish', method: Method.GET, data: { ids } });
+}
+
 type II18nReturn = (key: string, foo?: {[k: string]: any}) => string;
 
 function loadJson(el: HTMLScriptElement, lang: string) {
