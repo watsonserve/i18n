@@ -1,12 +1,20 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { WordDraftModel, WordModel } from './schema';
+import { WordModel } from './schema';
+
+enum EnUsing {
+  UNKNOW,
+  DRAFT,
+  ONLINE,
+  MODIFIED
+}
 
 interface IWordModel {
   prefix: string;
   language: string;
   key: string;
-  value: string;
+  value: string[];
+  using: EnUsing; // draft: 1, online: 2
 }
 
 function wrapArray<T>(foo?: T | T[]): T[] | undefined {
@@ -25,14 +33,30 @@ export async function insert(params: IWordModel) {
   }
 
   // check have a same data row in database
-  const [doc0, doc1] = await Promise.all([
-    WordDraftModel.findOne({ prefix, language, key }),
-    WordModel.findOne({ prefix, language, key })
-  ]);
-  if (null !== doc0 || null !== doc1) return { stat: -1, msg: 'same' };
+  const doc = await WordModel.findOne({ prefix, language, key });
+
+  if (null !== doc) return { stat: -1, msg: 'same' };
 
   // save
-  await new WordDraftModel({ prefix, language, key, value }).save();
+  await new WordModel({ prefix, language, key, value: [value], using: EnUsing.DRAFT }).save();
+  return { stat: 0, msg: 'success' };
+}
+
+export async function release(id: string) {
+  const doc = await WordModel.findOne({ _id: id });
+  if (doc) {
+    const value = [(doc.value as string[]).reverse()[0]];
+    await WordModel.updateOne(doc, { using: EnUsing.ONLINE, value });
+  }
+  return { stat: 0, msg: 'success' };
+}
+
+export async function shutdown(ids: string | string[] = []) {
+  if (!Array.isArray(ids)) ids = [ids];
+  ids = ids.filter(i => i);
+
+  if (ids.length) await WordModel.updateMany({ _id: { $in: ids }}, { using: EnUsing.DRAFT });
+
   return { stat: 0, msg: 'success' };
 }
 
@@ -50,34 +74,39 @@ export async function modify(params: IModify) {
   // modify a value
   if (id) {
     const doc = await WordModel.findById(id);
-    await WordDraftModel.updateOne({ _id: id }, { ...doc, value });
+
+    await WordModel.updateOne(doc, { value: [doc.value[0], value], using: EnUsing.DRAFT | doc.using });
     return { stat: 0, msg: 'success' };
   }
 
   // check prefix & key
-  const checkFields = { prefix, oldKey, key };
-  for (let i of Object.keys(checkFields)) {
-    if (!(checkFields as any)[i]) return { stat: -1, msg: `${i} is required` };
-  }
-
-  const docs = await WordModel.find({ prefix, key });
-  if (docs.length) {
-    return { stat: -1, msg: `key ${key} found` };
+  const checkFields = [['prefix', prefix], ['oldKey', oldKey], ['key', key]];
+  for (let [k, v] of checkFields) {
+    if (!v) return { stat: -1, msg: `${k} is required` };
   }
 
   // modify a key
-  const { modifiedCount } = await WordModel.updateMany({ prefix, key: oldKey }, { key }, { strict: true });
+  const { modifiedCount } = await WordModel.updateMany({ prefix, key: oldKey, using: EnUsing.DRAFT }, { key }, { strict: true });
   return !modifiedCount ? { stat: 404, msg: `key ${oldKey} not found` } : { stat: 0, msg: 'success' };
 }
 
-export async function remove(ids: string | string[] = [], isDraft = false) {
-  if (!Array.isArray(ids)) {
-    ids = [ids];
-  }
+
+export async function remove(ids: string | string[]) {
+  if (!Array.isArray(ids)) ids = [ids];
   ids = ids.filter(i => i);
+
   if (!ids.length) return { stat: -1, msg: 'id is required' };
-  await (isDraft ? WordDraftModel : WordModel).remove({ _id: { $in: ids }});
-  return { stat: 0, msg: 'success' };
+
+  const docs = await WordModel.find({ _id: { $in: ids }});
+  const up: any[] = [];
+  const rm: any[] = [];
+  docs.forEach(doc => {
+    if (doc.value.length > 1) return up.push(doc);
+    if (!(doc.using & EnUsing.ONLINE)) return rm.push(doc);
+  });
+  await WordModel.remove({ _id: { $in: ids }, using: EnUsing.DRAFT });
+  // await WordModel.updateMany({ _id: { $in: ids }, using: EnUsing.DRAFT });
+  return { stat: 0, msg: 'success', data: { removeAll: !up.length } };
 }
 
 interface ISelectQuery {
@@ -92,7 +121,8 @@ interface ISelectQuery {
 
 export async function select(params: ISelectQuery) {
   let { language, prefix, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
-  const filter: { [k:string]: any } = {};
+  const using = { $ne: isDraft ? EnUsing.ONLINE : EnUsing.DRAFT };
+  const filter: { [k:string]: any } = { using };
 
   language = wrapArray<string>(language);
   prefix = wrapArray<string>(prefix);
@@ -104,7 +134,7 @@ export async function select(params: ISelectQuery) {
   value && (filter.value = new RegExp(value, 'i'));
 
   const offset = ((+pageNo < 1 ? 1 : +pageNo) - 1) * +pageSize;
-  const model = isDraft ? WordDraftModel : WordModel;
+  const model = WordModel;
   const [docs, total] = await Promise.all([
     model.find(filter).skip(offset).limit(+pageSize),
     model.count(filter)
