@@ -18,6 +18,8 @@ interface IRequestOptions {
   data?: any;
 }
 
+const domain = 'http://127.0.0.1:6060' || window.location.origin;
+
 function urlEncode(data: { [k: string]: string | string[] }, search = new URLSearchParams()): string {
   const dataKey = Object.keys(data);
   for (const key of dataKey) {
@@ -43,18 +45,18 @@ async function request(options: IRequestOptions): Promise<any> {
     credentials: 'include'
   };
 
+  const url = new URL(`${domain}${feat}`);
   if (data) {
     // 有数据则设置数据类型，没有则设置内容长度为0
     if (method === Method.POST || method === Method.PUT) {
       opts.body = urlEncode(data);
       opts.headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=utf-8';
     } else {
-      const url = new URL(`${window.location.origin}${feat}`);
       urlEncode(data, url.searchParams);
-      feat = url.toString();
       opts.headers['Content-Length'] = '0';
     }
   }
+  feat = url.toString();
 
   const resp = await fetch(feat, opts);
   if (!resp.ok) return Promise.reject(new Error(resp.statusText || String(resp.status)));

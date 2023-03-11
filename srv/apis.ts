@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/dict', async (req, resp) => {
   try {
-    const res = await select(req.query);
+    const res = await select(req.query as any);
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

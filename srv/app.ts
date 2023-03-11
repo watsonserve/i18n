@@ -2,6 +2,7 @@
 
 import path from 'path';
 import http from 'http';
+import mongoose from 'mongoose';
 import express from 'express';
 import createError from 'http-errors';
 import cookieParser from 'cookie-parser';
@@ -57,6 +58,7 @@ async function gen() {
 }
 
 (async function main() {
+  mongoose.connect(`mongodb://172.19.0.1/translate`);
   const app = await gen();
   const server = http.createServer(app);
   server.listen(port);

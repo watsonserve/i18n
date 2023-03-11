@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
-mongoose.connect('mongodb://localhost/translate');
-
 const wordModel = new Schema({
   prefix: {
     type: String,

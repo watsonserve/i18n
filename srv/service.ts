@@ -91,7 +91,7 @@ export async function modify(params: IModify) {
 }
 
 
-export async function remove(ids: string | string[]) {
+export async function remove(ids: undefined | string | (string | undefined)[]) {
   if (!Array.isArray(ids)) ids = [ids];
   ids = ids.filter(i => i);
 
