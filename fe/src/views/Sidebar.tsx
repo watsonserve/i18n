@@ -24,6 +24,10 @@ export default function Sidebar() {
           <IconCalendar />
           Release
         </MenuItem>
+        <MenuItem key='/scope'>
+          <IconCalendar />
+          Scope
+        </MenuItem>
       </Menu>
     </>
   );

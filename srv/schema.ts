@@ -31,4 +31,15 @@ const wordModel = new Schema({
   }
 });
 
+const scopeModel = new Schema({
+  value: {
+    type: String,
+    idnex: true,
+    required: true,
+    background: true
+  },
+});
+
 export const WordModel = mongoose.model('translate', wordModel);
+
+export const ScopeModel = mongoose.model('scope', scopeModel);

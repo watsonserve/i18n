@@ -1,7 +1,6 @@
 import { ITableReq, ILoadTableResp, ISaveDataReq } from './types';
 
-export const prefixList = ['_'];
-export const languages = ['ar', 'en', 'es', 'fr', 'ru', 'zh', 'zh-cn', 'ja', 'de'];
+const languages = ['ar', 'en', 'es', 'fr', 'ru', 'zh', 'zh-cn', 'ja', 'de'];
 
 export enum Method {
   GET = 'GET',
@@ -18,7 +17,7 @@ interface IRequestOptions {
   data?: any;
 }
 
-const domain = 'http://127.0.0.1:6060' || window.location.origin;
+const domain = 'http://127.0.0.1:8088' || window.location.origin;
 
 function urlEncode(data: { [k: string]: string | string[] }, search = new URLSearchParams()): string {
   const dataKey = Object.keys(data);
@@ -64,8 +63,12 @@ async function request(options: IRequestOptions): Promise<any> {
 }
 
 export async function loadOptions() {
+  const resp = await request({
+    feat: '/api/scopes',
+    method: Method.GET
+  });
   return {
-    prefixList, languages
+    prefixList: [{ id: '_', value: '_' }].concat(resp.data.list), languages
   };
 }
 
@@ -106,7 +109,7 @@ function loadJson(el: HTMLScriptElement, lang: string) {
   return new Promise((resolve, reject) => {
     el.onload = resolve;
     el.onerror = reject;
-    el.src = `http://i18n.watsonserve.com/_${lang.toLowerCase()}.json`;
+    el.src = `${domain}/_${lang.toLowerCase()}.json`;
   });
 }
 

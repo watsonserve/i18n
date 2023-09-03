@@ -125,7 +125,7 @@ export default function DataView(props: ITableDataProps) {
   useEffect(() => {
     loadOptions()
     .then(({ prefixList, languages }) => {
-      setPrefixes(prefixList);
+      setPrefixes(prefixList.map(item => item.value));
       setLangs(languages);
     });
   }, [setPrefixes, setLangs]);

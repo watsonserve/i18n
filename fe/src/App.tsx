@@ -9,6 +9,7 @@ import { IconCaretRight, IconCaretLeft } from '@arco-design/web-react/icon';
 import './App.css';
 import Siderbar from './views/Sidebar';
 import DictPage from './views/DictPage';
+import ScopePage from './views/ScopePage';
 import ReleasePage from './views/ReleasePage';
 
 const Sider = Layout.Sider;
@@ -34,6 +35,7 @@ export default function App() {
             <Routes>
               <Route path="/dict" element={<DictPage />} />
               <Route path="/release" element={<ReleasePage />} />
+              <Route path="/scope" element={<ScopePage />} />
             </Routes>
           </Layout>
       </Layout>

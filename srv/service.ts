@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { WordModel } from './schema';
+import { WordModel, ScopeModel } from './schema';
 
 enum EnUsing {
   UNKNOW,
@@ -21,6 +21,22 @@ function wrapArray<T>(foo?: T | T[]): T[] | undefined {
   if (!foo) return undefined;
   let ret = (Array.isArray(foo) ? foo : [foo]).filter(i => i);
   return ret.length ? ret : undefined;
+}
+
+export async function selectScopes() {
+  const model = ScopeModel;
+  const docs = await model.find();
+
+  return {
+    stat: 0,
+    msg: 'success',
+    data: {
+      list: docs.map((item: any) => {
+        const { _id, __v, value } = item._doc;
+        return { id: _id, value };
+      })
+    }
+  };
 }
 
 export async function insert(params: IWordModel) {

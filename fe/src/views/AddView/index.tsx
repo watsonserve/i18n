@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Form, Input } from '@arco-design/web-react';
 import Selector from './Selector';
 import { ISaveData } from '../../api/types';
-import { prefixList, languages } from '../../api';
+import { loadOptions } from '../../api';
 
 interface IAddViewProps {
   visible: boolean;
@@ -12,6 +12,8 @@ interface IAddViewProps {
 
 export default function AddView(props: IAddViewProps) {
   const { visible, onCancel, onSave } = props;
+  const [prefixes, setPrefixes] = useState<string[]>([]);
+  const [langs, setLangs] = useState<string[]>([]);
   const [prefix, setPrefix] = useState<string | undefined>();
   const [language, setLanguage] = useState<string | undefined>();
   const [key, setKey] = useState<string | undefined>();
@@ -27,8 +29,14 @@ export default function AddView(props: IAddViewProps) {
   }, [form, prefix, language, key, value, onSave]);
 
   useEffect(() => {
+    loadOptions()
+    .then(({ prefixList, languages }) => {
+      setPrefixes(prefixList.map(item => item.value));
+      setLangs(languages);
+    });
+
     visible && form.resetFields();
-  }, [visible, form]);
+  }, [visible, form, setPrefixes, setLangs]);
 
   return useMemo(() => (
     <Modal
@@ -42,7 +50,7 @@ export default function AddView(props: IAddViewProps) {
           <Selector
             placeholder="select prefix"
             value={prefix!}
-            list={prefixList}
+            list={prefixes}
             onChange={setPrefix}
           />
         </Form.Item>
@@ -50,7 +58,7 @@ export default function AddView(props: IAddViewProps) {
           <Selector
             placeholder="select language"
             value={language!}
-            list={languages}
+            list={langs}
             onChange={setLanguage}
           />
         </Form.Item>

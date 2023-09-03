@@ -8,6 +8,7 @@ import createError from 'http-errors';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import apiRouter from './apis';
+import { MONGO_ADDRESS, PORT } from './cfg';
 
 const debug = require('debug')('translate:server');
 
@@ -24,7 +25,7 @@ function normalizePort(val: string) {
 /**
  * Get port from environment and store in Express.
  */
-const port = normalizePort(process.env.PORT || '80');
+const port = normalizePort(PORT || '80');
 
 async function gen() {
   const app = express();
@@ -58,7 +59,7 @@ async function gen() {
 }
 
 (async function main() {
-  mongoose.connect(`mongodb://172.19.0.1/translate`);
+  mongoose.connect(`mongodb://${MONGO_ADDRESS}/translate`);
   const app = await gen();
   const server = http.createServer(app);
   server.listen(port);
