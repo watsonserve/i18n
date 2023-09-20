@@ -61,7 +61,10 @@ export default function DictPage() {
   const handleEditKey = (prefix: string, key: string) => setVisibleKeyEditor(`${prefix}\n\t\r${key}`);
 
   const addRow = (p: any) => {
-    saveRow(p).then(() => setVisibleAdder(false));
+    saveRow(p).then(() => {
+      setVisibleAdder(false);
+      _loadTable({ pageNo: 1, pageSize: 20 });
+    });
   };
 
   const setShowBatch = () => {

@@ -17,7 +17,7 @@ interface IRequestOptions {
   data?: any;
 }
 
-const domain = 'http://127.0.0.1:8088' || window.location.origin;
+const domain = window.location.origin;
 
 function urlEncode(data: { [k: string]: string | string[] }, search = new URLSearchParams()): string {
   const dataKey = Object.keys(data);
@@ -99,8 +99,12 @@ export function alter(data: any) {
   return request({ feat: '/api/dict', method: Method.POST, data });
 }
 
-export function publish(ids: string[]) {
-  return request({ feat: '/api/publish', method: Method.GET, data: { ids } });
+export function release(ids: string[]) {
+  return request({ feat: '/api/release', method: Method.GET, data: { ids } });
+}
+
+export function publish(prefix: string, language: string) {
+  return request({ feat: '/api/publish', method: Method.GET, data: { prefix, language } });
 }
 
 type II18nReturn = (key: string, foo?: {[k: string]: any}) => string;
