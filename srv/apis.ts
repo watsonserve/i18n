@@ -1,13 +1,11 @@
 import express from 'express';
-import { insert, modify, remove, select, publish, selectScopes } from './service';
+import { insert, modify, remove, select, release, selectScopes } from './service';
 
 const router = express.Router();
 
 router.get('/scopes', async (req, resp) => {
   try {
     const res = await selectScopes();
-    // resp.setHeader('Access-Control-Allow-Origin', req.headers.origin || '');
-    // resp.setHeader('Access-Control-Allow-Credentials', 'true');
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });
@@ -44,6 +42,15 @@ router.delete('/dict', async (req, resp) => {
 router.put('/dict', async (req, resp) => {
   try {
     const res = await insert(req.body);
+    resp.send(res);
+  } catch(err: any) {
+    resp.send({ stat: -1, msg: err.message });
+  }
+});
+
+router.get('/release', async (req, resp) => {
+  try {
+    const res = await release(req.query.id?.toString() || '');
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

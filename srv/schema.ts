@@ -22,7 +22,6 @@ const wordModel = new Schema({
   },
   value: {
     type: Array,
-    idnex: true,
     sparse: true,
     background: true
   },

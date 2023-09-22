@@ -9,6 +9,7 @@ enum EnUsing {
 }
 
 interface IWordModel {
+  id: string;
   prefix: string;
   language: string;
   key: string;
@@ -29,21 +30,39 @@ function wrapArray<T>(foo?: T | T[]): T[] | undefined {
   return ret.length ? ret : undefined;
 }
 
-export async function selectScopes() {
-  const model = ScopeModel;
-  const docs = await model.find();
+class ChangeSet {
+  _logData: [IWordModel | null, IWordModel | null][] = [];
+  push([last, next]: [IWordModel | null, IWordModel | null]) {
+    let fooIdx = last ? this._logData.findIndex(item => JSON.stringify(item[1]) === JSON.stringify(last)) : -1;
+    let barIdx = next ? this._logData.findIndex(item => JSON.stringify(item[0]) === JSON.stringify(next)) : -1;
 
-  return {
-    stat: 0,
-    msg: 'success',
-    data: {
-      list: docs.map((item: any) => {
-        const { _id, __v, value } = item._doc;
-        return { id: _id, value };
-      })
+    if (fooIdx === barIdx) return -1 === fooIdx ? this._logData.push([last, next]) : this._logData.splice(fooIdx, 1);
+
+    const foo = this._logData[fooIdx] || null;
+    const bar = this._logData[barIdx] || null;
+
+    if (-1 !== fooIdx && -1 !== barIdx) {
+      this._logData.push([foo[0], bar[1]]);
+      if (barIdx < fooIdx) {
+        barIdx ^= fooIdx;
+        fooIdx ^= barIdx;
+        barIdx ^= fooIdx;
+      }
+      this._logData.splice(barIdx, 1);
+      this._logData.splice(fooIdx, 1);
+      return;
     }
-  };
+
+    if (-1 == fooIdx) {
+      bar[0] = last;
+      return;
+    }
+
+    foo[1] = next;
+  }
 }
+
+const channel = new ChangeSet();
 
 export async function insert(params: IWordModel) {
   const { prefix, language, key, value = '' } = params;
@@ -59,7 +78,7 @@ export async function insert(params: IWordModel) {
   if (null !== doc) return { stat: -1, msg: 'same' };
 
   // save
-  await new WordModel({ prefix, language, key, value }).save();
+  channel.push([null, { id: Math.random().toString(), prefix, language, key, value }]);
   return { stat: 0, msg: 'success' };
 }
 
@@ -88,7 +107,7 @@ export async function modify(params: IModify) {
   if (id) {
     const doc = await WordModel.findById(id);
 
-    await WordModel.updateOne(doc, { value: [doc.value[0], value], using: EnUsing.DRAFT | doc.using });
+    channel.push([doc, { ...doc, value }]);
     return { stat: 0, msg: 'success' };
   }
 
@@ -99,8 +118,8 @@ export async function modify(params: IModify) {
   }
 
   // modify a key
-  const { modifiedCount } = await WordModel.updateMany({ prefix, key: oldKey, using: EnUsing.DRAFT }, { key }, { strict: true });
-  return !modifiedCount ? { stat: 404, msg: `key ${oldKey} not found` } : { stat: 0, msg: 'success' };
+  channel.push([{ prefix, key: oldKey }, { prefix, key }]);
+  return { stat: 0, msg: 'success' };
 }
 
 
@@ -117,7 +136,7 @@ export async function remove(ids: undefined | string | (string | undefined)[]) {
     if (doc.value.length > 1) return up.push(doc);
     if (!(doc.using & EnUsing.ONLINE)) return rm.push(doc);
   });
-  await WordModel.remove({ _id: { $in: ids }, using: EnUsing.DRAFT });
+  channel.push([{ _id: { $in: ids } }, null]);
   // await WordModel.updateMany({ _id: { $in: ids }, using: EnUsing.DRAFT });
   return { stat: 0, msg: 'success', data: { removeAll: !up.length } };
 }
