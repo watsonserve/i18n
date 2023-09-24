@@ -64,11 +64,10 @@ export async function insert(params: IWordModel) {
 }
 
 export async function release(ids: string[]) {
-  const docs = await WordModel.find({ _id: { $in: ids } });
-  if (docs.length) {
-    const value = [(docs.value as string[]).reverse()[0]];
-    await WordModel.updateOne(docs, { using: EnUsing.ONLINE, value });
-  }
+  // const docs = await WordModel.find({ _id: { $in: ids } });
+  // if (docs.length) {
+  //   await WordModel.updateMany(docs, { using: EnUsing.ONLINE, value });
+  // }
   return { stat: 0, msg: 'success' };
 }
 
@@ -190,5 +189,3 @@ export async function loadFile(language: string, prefix = '_') {
   const result = JSON.parse(strContent);
   return Object.entries(result).map(([key, value]) => ({ prefix, language, key, value }));
 }
-
-const publishedDict = new Map<string, >();

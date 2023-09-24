@@ -1,5 +1,5 @@
 import express from 'express';
-import { insert, modify, remove, select, release, selectScopes } from './service';
+import { insert, modify, remove, select, release, publish, selectScopes } from './service';
 
 const router = express.Router();
 
@@ -50,7 +50,8 @@ router.put('/dict', async (req, resp) => {
 
 router.get('/release', async (req, resp) => {
   try {
-    const res = await release(req.query.id?.toString() || '');
+    const ids = (req.query.ids as string).split(',') || [];
+    const res = await release(ids);
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

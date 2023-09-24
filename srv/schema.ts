@@ -21,12 +21,9 @@ const wordModel = new Schema({
     background: true
   },
   value: {
-    type: Array,
+    type: String,
     sparse: true,
     background: true
-  },
-  using: {
-    type: Number
   }
 });
 
@@ -39,6 +36,7 @@ const scopeModel = new Schema({
   },
 });
 
-export const WordModel = mongoose.model('translate', wordModel);
+export const WordModel = mongoose.model('translate_online', wordModel);
+export const WordDraftModel = mongoose.model('translate_draft', wordModel);
 
 export const ScopeModel = mongoose.model('scope', scopeModel);

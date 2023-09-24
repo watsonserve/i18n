@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { STORE_PATH } from './cfg';
-import { WordModel, ScopeModel } from './schema';
+import { WordModel, WordDraftModel, ScopeModel } from './schema';
 
 enum EnUsing {
   DRAFT = 1,
@@ -30,13 +30,49 @@ function wrapArray<T>(foo?: T | T[]): T[] | undefined {
   return ret.length ? ret : undefined;
 }
 
+function modelify(src: IWordModel | null) {
+  if (!src) return null;
+
+  const { prefix, language, key, value } = src;
+  return `${prefix}_${language}_${key}_${value}`;
+}
+
+function find(logData: [IWordModel | null, IWordModel | null][], last: IWordModel | null, next: IWordModel | null) {
+  const strLst = modelify(last);
+  const strNxt = modelify(next);
+
+  let fooIdx = -1, barIdx = -1;
+
+  for (let idx = 0; idx < logData.length && fooIdx === -1 && barIdx === -1; idx++) {
+    const [item0, item1] = logData[idx];
+    const str0 = modelify(item0);
+    const str1 = modelify(item1);
+
+    if (str0 === strLst || str1 === strNxt) return null;
+
+    if (str1 && str1 === strLst) {
+      fooIdx = idx;
+    }
+    if (str0 && str0 === strNxt) {
+      barIdx = idx;
+    }
+  }
+
+  return { fooIdx, barIdx };
+}
+
 class ChangeSet {
   _logData: [IWordModel | null, IWordModel | null][] = [];
-  push([last, next]: [IWordModel | null, IWordModel | null]) {
-    let fooIdx = last ? this._logData.findIndex(item => JSON.stringify(item[1]) === JSON.stringify(last)) : -1;
-    let barIdx = next ? this._logData.findIndex(item => JSON.stringify(item[0]) === JSON.stringify(next)) : -1;
 
-    if (fooIdx === barIdx) return -1 === fooIdx ? this._logData.push([last, next]) : this._logData.splice(fooIdx, 1);
+  push([last, next]: [IWordModel | null, IWordModel | null]) {
+    let ret = find(this._logData, last, next);
+    if (!ret) return new Error('exsit');
+
+    let { fooIdx, barIdx } = ret;
+    if (fooIdx === barIdx) {
+      -1 === fooIdx ? this._logData.push([last, next]) : this._logData.splice(fooIdx, 1);
+      return null;
+    }
 
     const foo = this._logData[fooIdx] || null;
     const bar = this._logData[barIdx] || null;
@@ -50,15 +86,32 @@ class ChangeSet {
       }
       this._logData.splice(barIdx, 1);
       this._logData.splice(fooIdx, 1);
-      return;
+      return null;
     }
 
     if (-1 == fooIdx) {
       bar[0] = last;
-      return;
+      last === bar[1] && this._logData.splice(barIdx, 1);
+      return null;
     }
 
     foo[1] = next;
+    next === foo[0] && this._logData.splice(fooIdx, 1);
+    return null;
+  }
+
+  removeByIds() {}
+
+  find() {}
+
+  find(ids: string[]) {
+    const idSet = new Set(ids);
+
+    return this._logData.reduce<IWordModel[]>((pre, [_, item]) => {
+      idSet.has(item?.id || '') && pre.push(item as IWordModel);
+
+      return pre;
+    }, []);
   }
 }
 
@@ -74,12 +127,37 @@ export async function insert(params: IWordModel) {
   }
 
   // check have a same data row in database
-  const doc = await WordModel.findOne(checkFields);
-  if (null !== doc) return { stat: -1, msg: 'same' };
+  const [doc, draft] = await Promise.all([
+    WordModel.findOne(checkFields),
+    WordDraftModel.findOne(checkFields)
+  ]);
+
+  if (null !== doc || null !== draft) return { stat: -1, msg: 'same' };
 
   // save
-  channel.push([null, { id: Math.random().toString(), prefix, language, key, value }]);
+  await new WordDraftModel({ prefix, language, key, value }).save();
   return { stat: 0, msg: 'success' };
+}
+
+export async function remove(ids: string[]) {
+  if (!Array.isArray(ids)) ids = [ids];
+  ids = ids.filter(Boolean);
+
+  if (!ids.length) return { stat: -1, msg: 'id is required' };
+
+  const [docs] = await Promise.all([
+    WordModel.find({ _id: { $in: ids }}),
+    WordDraftModel.updateMany(
+      { _id: { $in: ids }},
+      { $set: { prefix: '', language: '', key: '', value: '' } }
+    )
+  ]);
+
+  await WordDraftModel.insertMany(docs.map(
+    item => ({ _id: item._id, prefix: '', language: '', key: '', value: '' })
+  ));
+
+  return { stat: 0, msg: 'success', data: { removeAll: ids.length } };
 }
 
 export async function release(ids: string[]) {
@@ -105,9 +183,11 @@ export async function modify(params: IModify) {
 
   // modify a value
   if (id) {
-    const doc = await WordModel.findById(id);
+    const docs = await Promise.all([WordModel.findById(id), WordDraftModel.findById(id)]);
 
-    channel.push([doc, { ...doc, value }]);
+    WordDraftModel.updateOne(
+      { _id: id }, { $set: Object.assign(...docs, { value }) }, { upsert: true }
+    )
     return { stat: 0, msg: 'success' };
   }
 
@@ -118,28 +198,15 @@ export async function modify(params: IModify) {
   }
 
   // modify a key
-  channel.push([{ prefix, key: oldKey }, { prefix, key }]);
+  const [doc, draft] = await Promise.all([
+    WordModel.find({ prefix, key: oldKey }),
+    WordDraftModel.find({ prefix, key: oldKey })
+  ]);
+  await WordDraftModel.insertMany(doc.concat(draft).map(item => ({ ...item, key })));
   return { stat: 0, msg: 'success' };
 }
 
 
-export async function remove(ids: undefined | string | (string | undefined)[]) {
-  if (!Array.isArray(ids)) ids = [ids];
-  ids = ids.filter(i => i);
-
-  if (!ids.length) return { stat: -1, msg: 'id is required' };
-
-  const docs = await WordModel.find({ _id: { $in: ids }});
-  const up: any[] = [];
-  const rm: any[] = [];
-  docs.forEach(doc => {
-    if (doc.value.length > 1) return up.push(doc);
-    if (!(doc.using & EnUsing.ONLINE)) return rm.push(doc);
-  });
-  channel.push([{ _id: { $in: ids } }, null]);
-  // await WordModel.updateMany({ _id: { $in: ids }, using: EnUsing.DRAFT });
-  return { stat: 0, msg: 'success', data: { removeAll: !up.length } };
-}
 
 interface ISelectQuery {
   language?: string | string[];
@@ -209,5 +276,3 @@ export async function loadFile(language: string, prefix = '_') {
   const result = JSON.parse(strContent);
   return Object.entries(result).map(([key, value]) => ({ prefix, language, key, value }));
 }
-
-const publishedDict = new Map<string, >();
