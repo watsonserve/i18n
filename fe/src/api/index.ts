@@ -87,6 +87,21 @@ export async function loadTable({ pageNo, pageSize, prefix, language, key, value
   return resp.data;
 }
 
+export async function loadDraft({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
+  const data: any = { pageNo, pageSize, key, value };
+
+  prefix && prefix?.length && (data.prefix = prefix);
+  language && language?.length && (data.language = language);
+
+  const resp = await request({
+    feat: '/api/draft',
+    method: Method.GET,
+    data
+  });
+
+  return resp.data;
+}
+
 export function remove(ids: string[]) {
   return request({ feat: '/api/dict', method: Method.DELETE, data: { id: ids } });
 }

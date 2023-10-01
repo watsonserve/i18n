@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Layout, Space, Button, Popconfirm, Message } from '@arco-design/web-react';
 import DataView, { ITableMod } from './DataView';
-import { ITableReq } from '../api/types';
-import { loadTable, publish } from '../api';
+import { ITableReq } from '../../api/types';
+import { loadDraft, release } from '../../api';
 
 const Header = Layout.Header;
 const Content = Layout.Content;
 
-export default function DictPage() {
+export default function ReleasePage() {
   const [tableSelected, setTableSelect] = useState<string[]>([]);
   const [data, setData] = useState<ITableMod>({
     list: [],
@@ -17,7 +17,7 @@ export default function DictPage() {
   });
 
   const _loadTable = useCallback(async (p: ITableReq) => {
-    const resp = await loadTable(p);
+    const resp = await loadDraft(p);
     setData({ ...resp, pageNo: p.pageNo, pageSize: p.pageSize });
   }, []);
 
@@ -28,7 +28,7 @@ export default function DictPage() {
   const handleRelease = async () => {
     Message.info({ content: 'ok' });
     console.log(tableSelected);
-    await publish(tableSelected);
+    await release(tableSelected);
     setTableSelect([]);
   };
 
@@ -37,7 +37,7 @@ export default function DictPage() {
       <Header style={{ textAlign: 'left' }}>
         <Space wrap className="bach-btn-group">
           <Popconfirm
-            title='Are you sure you want to delete?'
+            title='Are you sure you want to release?'
             onOk={handleRelease}
             onCancel={() => Message.error({ content: 'cancel' })}
           >

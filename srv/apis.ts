@@ -1,5 +1,6 @@
 import express from 'express';
-import { insert, modify, remove, select, release, publish, selectScopes } from './service';
+import { selectDraft, release, publish, selectScopes } from './service';
+import { select, insert, remove, modifyKey, modifyValue } from './dict';
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.get('/dict', async (req, resp) => {
 
 router.post('/dict', async (req, resp) => {
   try {
-    const res = await modify(req.body);
+    const { id, prefix, oldKey, key, value = '' } = req.body;
+    const res = await (id ? modifyValue(id, value) : modifyKey(prefix, oldKey, key));
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });
@@ -32,7 +34,17 @@ router.post('/dict', async (req, resp) => {
 
 router.delete('/dict', async (req, resp) => {
   try {
-    const res = await remove(req.query.id as (string | string[] | undefined));
+    let ids: any = req.query.id;
+    if (!ids || (Array.isArray(ids) && !ids.length)) {
+      resp.send({ stat: -1, msg: `ids are required` });
+      return;
+    }
+
+    if ('string' === typeof ids) {
+      ids = ids.split(',');
+    }
+
+    const res = await remove(ids);
     resp.send(res);
   } catch (err: any) {
     resp.send({ stat: -1, msg: err.message });
@@ -42,6 +54,15 @@ router.delete('/dict', async (req, resp) => {
 router.put('/dict', async (req, resp) => {
   try {
     const res = await insert(req.body);
+    resp.send(res);
+  } catch(err: any) {
+    resp.send({ stat: -1, msg: err.message });
+  }
+});
+
+router.get('/draft', async (req, resp) => {
+  try {
+    const res = await selectDraft(req.query as any);
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Table, Layout } from '@arco-design/web-react';
-import { loadOptions } from '../api';
+import { loadOptions, publish } from '../api';
 
 const Content = Layout.Content;
 const Header = Layout.Header;
@@ -17,6 +17,11 @@ export default function ScopePage() {
     });
   }, [setData]);
 
+  const handlePublish = (item: any) => {
+    console.log(item);
+    publish(item.value, '');
+  };
+
   return (
     <Content style={{ padding: '0 24px 24px', justifyContent: 'start' }}>
       <Header style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -25,6 +30,11 @@ export default function ScopePage() {
         columns={[{
           title: 'prefix',
           dataIndex: 'value',
+        }, {
+          title: 'options',
+          render(col: any, item: any) {
+            return (<button onClick={() => handlePublish(item)}>publish</button>);
+          }
         }]}
         data={data.prefixList}
         rowKey="id"
