@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { STORE_PATH } from './cfg';
-import { WordModel, WordDraftModel, ScopeModel } from './schema';
+import { STORE_PATH } from '../cfg';
+import { WordModel, WordDraftModel, ScopeModel } from '../schema';
+import { wrapArray } from '../utils';
 
 enum EnUsing {
   DRAFT = 1,
@@ -18,11 +19,6 @@ interface ISelectQuery {
   isDraft?: boolean;
 }
 
-function wrapArray<T>(foo?: T | T[]): T[] | undefined {
-  if (!foo) return undefined;
-  let ret = (Array.isArray(foo) ? foo : [foo]).filter(i => i);
-  return ret.length ? ret : undefined;
-}
 
 export async function selectScopes() {
   const model = ScopeModel;
@@ -77,9 +73,8 @@ export async function shutdown(ids: string | string[] = []) {
 
 
 export async function selectDraft(params: ISelectQuery) {
-  let { language, prefix, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
-  const using = { $ne: isDraft ? EnUsing.ONLINE : EnUsing.DRAFT };
-  const filter: { [k:string]: any } = { using };
+  let { language, prefix, key, value, pageNo = 0, pageSize = 0 } = params;
+  const filter: { [k:string]: any } = {};
 
   language = wrapArray<string>(language);
   prefix = wrapArray<string>(prefix);
@@ -91,11 +86,11 @@ export async function selectDraft(params: ISelectQuery) {
   value && (filter.value = new RegExp(value, 'i'));
 
   const offset = ((+pageNo < 1 ? 1 : +pageNo) - 1) * +pageSize;
-  const [docs, total] = await Promise.all([
+  const [docs, total] = (await Promise.all([
     WordDraftModel.find(filter).skip(offset).limit(+pageSize),
     WordDraftModel.count(filter)
-  ]);
-  const raw = await WordModel.find({ _id: { $in: docs.map(item => item._id) } });
+  ]) as [any[], number]);
+  const raw: any[] = await WordModel.find({ _id: { $in: docs.map(item => item._id) } });
   const rawMap = new Map(raw.map(({ _doc }) => [_doc._id.toString(), _doc]));
 
   return {
@@ -114,24 +109,6 @@ export async function selectDraft(params: ISelectQuery) {
   };
 }
 
-export async function publish({ prefix, language }: any) {
-  if (!prefix || !language) return { stat: -1, msg: 'data not found' };
-
-  const [_docs, docs] = await Promise.all([
-    WordModel.find({ prefix: '_', language }),
-    WordModel.find({ prefix, language })
-  ]);
-
-  // export default (()=>{const _dict={};return k=>(_dict[k]||k)})()
-  const result = _docs.concat(docs).reduce((pre, item) => {
-    pre[item.key] = item.value;
-    return pre;
-  }, {} as { [k: string]: string} );
-  
-  fs.writeFile(path.resolve(STORE_PATH, `${prefix}${language}.json`), JSON.stringify(result));
-
-  return { stat: 0, msg: 'success' };
-}
 
 export async function loadFile(language: string, prefix = '_') {
   const strContent = await fs.readFile(path.resolve(STORE_PATH, `${prefix}${language}.json`), 'utf-8');

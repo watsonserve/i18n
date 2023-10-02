@@ -1,5 +1,5 @@
 import express from 'express';
-import { selectDraft, release, publish, selectScopes } from './service';
+import { selectDraft, release, publish, selectScopes } from './service/service';
 import { select, insert, remove, modifyKey, modifyValue } from './dict';
 
 const router = express.Router();

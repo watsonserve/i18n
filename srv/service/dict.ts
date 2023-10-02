@@ -1,4 +1,5 @@
-import { WordModel, WordDraftModel } from './schema';
+import { WordModel, WordDraftModel } from '../schema';
+import { wrapArray } from '../utils';
 
 enum EnUsing {
   DRAFT = 1,
@@ -21,12 +22,6 @@ interface ISelectQuery {
   pageNo: number;
   pageSize: number;
   isDraft?: boolean;
-}
-
-function wrapArray<T>(foo?: T | T[]): T[] | undefined {
-  if (!foo) return undefined;
-  let ret = (Array.isArray(foo) ? foo : [foo]).filter(i => i);
-  return ret.length ? ret : undefined;
 }
 
 export async function insert(params: IWordModel) {
@@ -66,7 +61,7 @@ export async function remove(ids: string[]) {
   ]);
 
   await WordDraftModel.insertMany(docs.map(
-    item => ({ _id: item._id, prefix: '', language: '', key: '', value: '' })
+    (item: any) => ({ _id: item._id, prefix: '', language: '', key: '', value: '' })
   ));
 
   return { stat: 0, msg: 'success', data: { removeAll: ids.length } };
@@ -96,10 +91,10 @@ export async function modifyKey(prefix: string, oldKey: string, key: string) {
   }
 
   // modify a key
-  let [doc, draft] = await Promise.all([
+  let [doc, draft] = (await Promise.all([
     WordModel.find({ prefix, key: oldKey }),
     WordDraftModel.find({ prefix, key: oldKey })
-  ]);
+  ]) as [any[], any[]]);
 
   const draftSet = new Set(draft.map(item => item.language));
   doc = doc.filter(item => !draftSet.has(item.language));
@@ -114,9 +109,8 @@ export async function modifyKey(prefix: string, oldKey: string, key: string) {
 
 
 export async function select(params: ISelectQuery) {
-  let { language, prefix, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
-  const using = { $ne: isDraft ? EnUsing.ONLINE : EnUsing.DRAFT };
-  const filter: { [k:string]: any } = { using };
+  let { language, prefix, key, value, pageNo = 0, pageSize = 0 } = params;
+  const filter: { [k:string]: any } = {};
 
   language = wrapArray<string>(language);
   prefix = wrapArray<string>(prefix);
@@ -138,8 +132,8 @@ export async function select(params: ISelectQuery) {
     stat: 0,
     msg: 'success',
     data: {
-      list: docs.map(item => {
-        const { _id, __v, ...word } = item._doc;
+      list: docs.map(({ _doc }: any) => {
+        const { _id, __v, ...word } = _doc;
         return { id: _id, ...word };
       }),
       total
