@@ -1,6 +1,5 @@
 import express from 'express';
-import { selectDraft, release, publish, selectScopes } from './service/service';
-import { select, insert, remove, modifyKey, modifyValue } from './dict';
+import { select, insert, remove, modifyKey, modifyValue, selectDraft, release, selectScopes } from './service';
 
 const router = express.Router();
 
@@ -81,8 +80,8 @@ router.get('/release', async (req, resp) => {
 
 router.get('/publish', async (req, resp) => {
   try {
-    const res = await publish(req.query);
-    resp.send(res);
+    // const res = await publish(req.query);
+    resp.send({});
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });
   }
