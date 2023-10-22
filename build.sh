@@ -4,4 +4,4 @@
 # cd ..
 docker build -t translate .
 docker-clean
-docker run --rm -d -v /opt/mongodata/db:/data/db --name i18n translate
+docker run --rm -d --name i18n translate
