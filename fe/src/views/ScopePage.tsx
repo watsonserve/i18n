@@ -28,7 +28,7 @@ export default function ScopePage() {
       </Header>
       <Table
         columns={[{
-          title: 'prefix',
+          title: 'scope',
           dataIndex: 'value',
         }, {
           title: 'options',

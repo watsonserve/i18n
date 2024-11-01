@@ -1,6 +1,6 @@
 export interface IList {
   id: string;
-  prefix: string;
+  scope: string;
   key: string;
   language: string;
   value: string;
@@ -14,21 +14,21 @@ export interface ILoadTableResp {
 export interface ITableReq {
   pageNo: number;
   pageSize: number;
-  prefix?: string[];
+  scope?: string[];
   language?: string[];
   key?: string;
   value?: string;
 };
 
 export interface ISaveData {
-  prefix: string;
+  scope: string;
   language: string;
   key: string;
   value?: string;
 };
 
 export type ISaveDataReq = ISaveData | {
-  prefix: string;
+  scope: string;
   oldKey: string;
   key: string;
 } | {

@@ -62,10 +62,10 @@ async function request(options: IRequestOptions): Promise<any> {
   return resp.json();
 }
 
-export async function loadTable({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
+export async function loadTable({ pageNo, pageSize, scope, language, key, value }: ITableReq): Promise<ILoadTableResp> {
   const data: any = { pageNo, pageSize, key, value };
 
-  prefix && prefix?.length && (data.prefix = prefix);
+  scope && scope?.length && (data.scope = scope);
   language && language?.length && (data.language = language);
 
   const resp = await request({
@@ -93,8 +93,8 @@ export function release(ids: string[]) {
   return request({ feat: '/api/release', method: Method.GET, data: { ids } });
 }
 
-export function publish(prefix: string, language: string) {
-  return request({ feat: '/api/publish', method: Method.GET, data: { prefix, language } });
+export function publish(scope: string, language: string) {
+  return request({ feat: '/api/publish', method: Method.GET, data: { scope, language } });
 }
 
 export async function loadOptions() {
@@ -107,10 +107,10 @@ export async function loadOptions() {
   };
 }
 
-export async function loadDraft({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
+export async function loadDraft({ pageNo, pageSize, scope, language, key, value }: ITableReq): Promise<ILoadTableResp> {
   const data: any = { pageNo, pageSize, key, value };
 
-  prefix && prefix?.length && (data.prefix = prefix);
+  scope && scope?.length && (data.scope = scope);
   language && language?.length && (data.language = language);
 
   const resp = await request({

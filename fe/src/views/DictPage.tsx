@@ -38,8 +38,8 @@ export default function DictPage() {
     });
   };
 
-  const saveKey = (prefix: string, oldKey: string, key: string) => {
-    alter({ prefix, oldKey, key }).then(() => {
+  const saveKey = (scope: string, oldKey: string, key: string) => {
+    alter({ scope, oldKey, key }).then(() => {
       setVisibleKeyEditor('');
       for (let item of data.list) {
         if (item.key !== oldKey) continue;
@@ -58,7 +58,7 @@ export default function DictPage() {
     });
   };
 
-  const handleEditKey = (prefix: string, key: string) => setVisibleKeyEditor(`${prefix}\n\t\r${key}`);
+  const handleEditKey = (scope: string, key: string) => setVisibleKeyEditor(`${scope}\n\t\r${key}`);
 
   const addRow = (p: any) => {
     saveRow(p).then(() => {

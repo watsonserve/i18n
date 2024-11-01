@@ -55,8 +55,8 @@ function useColumns(
 
     return [
       {
-        title: 'prefix',
-        dataIndex: 'prefix',
+        title: 'scope',
+        dataIndex: 'scope',
         filters: prefixes.map(p => ({ text: p, value: p }))
       },
       {
@@ -70,7 +70,7 @@ function useColumns(
               return (
                 <div className="event-cell">
                   {col}
-                  <Button type="primary" icon={<IconEdit />} onClick={() => onEditKey(record.prefix, col)} />
+                  <Button type="primary" icon={<IconEdit />} onClick={() => onEditKey(record.scope, col)} />
                 </div>
               );
             }

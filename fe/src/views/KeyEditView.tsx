@@ -9,19 +9,19 @@ interface IAddViewProps {
 
 export default function AddView(props: IAddViewProps) {
   const { value, onCancel, onSave } = props;
-  const [prefix, key] = value.split('\n\t\r');
+  const [scope, key] = value.split('\n\t\r');
   const prefixRef = useRef('');
-  prefixRef.current = prefix;
+  prefixRef.current = scope;
   const [nxtValue, setNxtValue] = useState<string>(key);
 
   const handleSave = useCallback(() => {
-    onSave(prefix, key, nxtValue);
-  }, [prefix, key, nxtValue, onSave]);
+    onSave(scope, key, nxtValue);
+  }, [scope, key, nxtValue, onSave]);
 
   useEffect(() => {
     if (!value) return;
-    const [prefix, key] = value.split('\n\t\r');
-    prefixRef.current = prefix;
+    const [scope, key] = value.split('\n\t\r');
+    prefixRef.current = scope;
     setNxtValue(key);
   }, [value]);
 
@@ -34,7 +34,7 @@ export default function AddView(props: IAddViewProps) {
         onCancel={onCancel}
         onOk={handleSave}
       >
-        <Space>prefix: <span>{prefix}</span></Space>
+        <Space>scope: <span>{scope}</span></Space>
         <Input
           placeholder="new key"
           value={nxtValue}
@@ -42,5 +42,5 @@ export default function AddView(props: IAddViewProps) {
         />
       </Modal>
     );
-  }, [value, onCancel, handleSave, prefix, nxtValue]);
+  }, [value, onCancel, handleSave, scope, nxtValue]);
 }

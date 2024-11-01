@@ -14,7 +14,7 @@ export default function AddView(props: IAddViewProps) {
   const { visible, onCancel, onSave } = props;
   const [prefixes, setPrefixes] = useState<string[]>([]);
   const [langs, setLangs] = useState<string[]>([]);
-  const [prefix, setPrefix] = useState<string | undefined>();
+  const [scope, setPrefix] = useState<string | undefined>();
   const [language, setLanguage] = useState<string | undefined>();
   const [key, setKey] = useState<string | undefined>();
   const [value, setValue] = useState<string | undefined>();
@@ -23,10 +23,10 @@ export default function AddView(props: IAddViewProps) {
 
   const handleSave = useCallback(() => {
     form.validate().then(() => {
-      if (!prefix || !language || !key) return;
-      onSave({ prefix, language, key, value });
+      if (!scope || !language || !key) return;
+      onSave({ scope, language, key, value });
     }, () => {});
-  }, [form, prefix, language, key, value, onSave]);
+  }, [form, scope, language, key, value, onSave]);
 
   useEffect(() => {
     loadOptions()
@@ -46,10 +46,10 @@ export default function AddView(props: IAddViewProps) {
       onOk={handleSave}
     >
       <Form form={form}>
-        <Form.Item label="prefix" field="prefix" rules={[{ required: true }]}>
+        <Form.Item label="scope" field="scope" rules={[{ required: true }]}>
           <Selector
-            placeholder="select prefix"
-            value={prefix!}
+            placeholder="select scope"
+            value={scope!}
             list={prefixes}
             onChange={setPrefix}
           />
@@ -78,5 +78,5 @@ export default function AddView(props: IAddViewProps) {
         </Form.Item>
       </Form>
     </Modal>
-  ), [visible, onCancel, handleSave, form, prefix, language, key, value]);
+  ), [visible, onCancel, handleSave, form, scope, language, key, value]);
 }
