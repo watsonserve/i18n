@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
 const wordModel = new Schema({
-  prefix: {
+  scope: {
     type: String,
     idnex: true,
     required: true,
@@ -24,6 +24,11 @@ const wordModel = new Schema({
     type: String,
     sparse: true,
     background: true
+  },
+  update_time: {
+    type: Number,
+    index: true,
+    default: () => Date.now()
   }
 });
 

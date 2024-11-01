@@ -11,7 +11,7 @@ enum EnUsing {
 
 interface ISelectQuery {
   language?: string | string[];
-  prefix?: string | string[];
+  scope?: string | string[];
   key: string;
   value: string;
   pageNo: number;
@@ -19,12 +19,12 @@ interface ISelectQuery {
   isDraft?: boolean;
 }
 
-async function publish({ prefix, language }: any) {
-  if (!prefix || !language) return { stat: -1, msg: 'data not found' };
+async function publish({ scope, language }: any) {
+  if (!scope || !language) return { stat: -1, msg: 'data not found' };
 
   const [_docs, docs] = (await Promise.all([
-    WordModel.find({ prefix: '_', language }),
-    WordModel.find({ prefix, language })
+    WordModel.find({ scope: '_', language }),
+    WordModel.find({ scope, language })
   ]) as [any[], any[]]);
 
   const result = _docs.concat(docs).reduce((pre, item) => {
@@ -32,7 +32,7 @@ async function publish({ prefix, language }: any) {
     return pre;
   }, {} as Record<string, string>);
   
-  fs.writeFile(path.resolve(STORE_PATH, `${prefix}${language}.json`), JSON.stringify(result));
+  fs.writeFile(path.resolve(STORE_PATH, `${scope}${language}.json`), JSON.stringify(result));
 
   return { stat: 0, msg: 'success' };
 }
@@ -48,10 +48,10 @@ export async function release(ids: string[]) {
   const modifies: any[] = [];
   const publishSet = new Set<string>();
   draft.forEach(({ _doc }: any) => {
-    const { _id, prefix, language } = _doc;
-    publishSet.add(`${prefix}/${language}`);
+    const { _id, scope, language } = _doc;
+    publishSet.add(`${scope}/${language}`);
     const id = _id.toString();
-    const chan = !_doc.prefix ? removes : rawIds.has(id) ? modifies : adds;
+    const chan = !_doc.scope ? removes : rawIds.has(id) ? modifies : adds;
     chan.push({ ..._doc, _id: id });
   });
   await Promise.all([
@@ -60,8 +60,8 @@ export async function release(ids: string[]) {
     modifies.map(item => WordModel.updateOne({ _id: item._id }, item))
   ]);
   const publishFiles = [...publishSet].map(value => {
-    const [prefix, language] = value.split('/');
-    return publish({ prefix, language });
+    const [scope, language] = value.split('/');
+    return publish({ scope, language });
   });
 
   await Promise.all([
@@ -72,15 +72,15 @@ export async function release(ids: string[]) {
 }
 
 export async function selectDraft(params: ISelectQuery) {
-  let { language, prefix, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
+  let { language, scope, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
   const using = { $ne: isDraft ? EnUsing.ONLINE : EnUsing.DRAFT };
   const filter: { [k:string]: any } = { using };
 
   language = wrapArray<string>(language);
-  prefix = wrapArray<string>(prefix);
+  scope = wrapArray<string>(scope);
 
   language && (filter.language = { $in: language });
-  prefix && (filter.prefix = { $in: prefix });
+  scope && (filter.scope = { $in: scope });
 
   key && (filter.key = new RegExp(key, 'i'));
   value && (filter.value = new RegExp(value, 'i'));
@@ -100,7 +100,7 @@ export async function selectDraft(params: ISelectQuery) {
       list: docs.map(({ _doc }: any) => {
         const { _id, __v, ...word } = _doc;
         const id = _id.toString();
-        let opt = !word.prefix ? 'del' : rawMap.get(id) ? 'mod' : 'add';
+        let opt = !word.scope ? 'del' : rawMap.get(id) ? 'mod' : 'add';
 
         return { id, ...word, opt };
       }),

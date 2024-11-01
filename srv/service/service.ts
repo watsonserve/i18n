@@ -11,7 +11,7 @@ enum EnUsing {
 
 interface ISelectQuery {
   language?: string | string[];
-  prefix?: string | string[];
+  scope?: string | string[];
   key: string;
   value: string;
   pageNo: number;
@@ -47,7 +47,7 @@ export async function release(ids: string[]) {
   const modifies: any[] = [];
   draft.forEach(({ _doc }) => {
     const id = _doc._id.toString();
-    const chan = !_doc.prefix ? removes : rawIds.has(id) ? modifies : adds;
+    const chan = !_doc.scope ? removes : rawIds.has(id) ? modifies : adds;
     chan.push({ ..._doc, _id: id });
   });
   await Promise.all([
@@ -73,14 +73,14 @@ export async function shutdown(ids: string | string[] = []) {
 
 
 export async function selectDraft(params: ISelectQuery) {
-  let { language, prefix, key, value, pageNo = 0, pageSize = 0 } = params;
+  let { language, scope, key, value, pageNo = 0, pageSize = 0 } = params;
   const filter: { [k:string]: any } = {};
 
   language = wrapArray<string>(language);
-  prefix = wrapArray<string>(prefix);
+  scope = wrapArray<string>(scope);
 
   language && (filter.language = { $in: language });
-  prefix && (filter.prefix = { $in: prefix });
+  scope && (filter.scope = { $in: scope });
 
   key && (filter.key = new RegExp(key, 'i'));
   value && (filter.value = new RegExp(value, 'i'));
@@ -100,7 +100,7 @@ export async function selectDraft(params: ISelectQuery) {
       list: docs.map(item => {
         const { _id, __v, ...word } = item._doc;
         const id = _id.toString();
-        let opt = !word.prefix ? 'del' : rawMap.get(id) ? 'mod' : 'add';
+        let opt = !word.scope ? 'del' : rawMap.get(id) ? 'mod' : 'add';
 
         return { id, ...word, opt };
       }),
@@ -110,8 +110,8 @@ export async function selectDraft(params: ISelectQuery) {
 }
 
 
-export async function loadFile(language: string, prefix = '_') {
-  const strContent = await fs.readFile(path.resolve(STORE_PATH, `${prefix}${language}.json`), 'utf-8');
+export async function loadFile(language: string, scope = '_') {
+  const strContent = await fs.readFile(path.resolve(STORE_PATH, `${scope}${language}.json`), 'utf-8');
   const result = JSON.parse(strContent);
-  return Object.entries(result).map(([key, value]) => ({ prefix, language, key, value }));
+  return Object.entries(result).map(([key, value]) => ({ scope, language, key, value }));
 }

@@ -3,28 +3,9 @@ import { select, insert, remove, modifyKey, modifyValue, selectDraft, release, s
 
 const router = express.Router();
 
-router.get('/scopes', async (req, resp) => {
+router.put('/dict', async (req, resp) => {
   try {
-    const res = await selectScopes();
-    resp.send(res);
-  } catch(err: any) {
-    resp.send({ stat: -1, msg: err.message });
-  }
-});
-
-router.get('/dict', async (req, resp) => {
-  try {
-    const res = await select(req.query as any);
-    resp.send(res);
-  } catch(err: any) {
-    resp.send({ stat: -1, msg: err.message });
-  }
-});
-
-router.post('/dict', async (req, resp) => {
-  try {
-    const { id, prefix, oldKey, key, value = '' } = req.body;
-    const res = await (id ? modifyValue(id, value) : modifyKey(prefix, oldKey, key));
+    const res = await insert(req.body);
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });
@@ -50,9 +31,29 @@ router.delete('/dict', async (req, resp) => {
   }
 });
 
-router.put('/dict', async (req, resp) => {
+router.post('/dict', async (req, resp) => {
   try {
-    const res = await insert(req.body);
+    const { id, scope, oldKey, key, value = '' } = req.body;
+    const res = await (id ? modifyValue(id, value) : modifyKey(scope, oldKey, key));
+    resp.send(res);
+  } catch(err: any) {
+    resp.send({ stat: -1, msg: err.message });
+  }
+});
+
+router.get('/dict', async (req, resp) => {
+  try {
+    const res = await select(req.query as any);
+    resp.send(res);
+  } catch(err: any) {
+    resp.send({ stat: -1, msg: err.message });
+  }
+});
+
+
+router.get('/scopes', async (req, resp) => {
+  try {
+    const res = await selectScopes();
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

@@ -62,16 +62,6 @@ async function request(options: IRequestOptions): Promise<any> {
   return resp.json();
 }
 
-export async function loadOptions() {
-  const resp = await request({
-    feat: '/api/scopes',
-    method: Method.GET
-  });
-  return {
-    prefixList: [{ id: '_', value: '_' }].concat(resp.data.list), languages
-  };
-}
-
 export async function loadTable({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
   const data: any = { pageNo, pageSize, key, value };
 
@@ -80,21 +70,6 @@ export async function loadTable({ pageNo, pageSize, prefix, language, key, value
 
   const resp = await request({
     feat: '/api/dict',
-    method: Method.GET,
-    data
-  });
-
-  return resp.data;
-}
-
-export async function loadDraft({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
-  const data: any = { pageNo, pageSize, key, value };
-
-  prefix && prefix?.length && (data.prefix = prefix);
-  language && language?.length && (data.language = language);
-
-  const resp = await request({
-    feat: '/api/draft',
     method: Method.GET,
     data
   });
@@ -120,6 +95,31 @@ export function release(ids: string[]) {
 
 export function publish(prefix: string, language: string) {
   return request({ feat: '/api/publish', method: Method.GET, data: { prefix, language } });
+}
+
+export async function loadOptions() {
+  const resp = await request({
+    feat: '/api/scopes',
+    method: Method.GET
+  });
+  return {
+    prefixList: [{ id: '_', value: '_' }].concat(resp.data.list), languages
+  };
+}
+
+export async function loadDraft({ pageNo, pageSize, prefix, language, key, value }: ITableReq): Promise<ILoadTableResp> {
+  const data: any = { pageNo, pageSize, key, value };
+
+  prefix && prefix?.length && (data.prefix = prefix);
+  language && language?.length && (data.language = language);
+
+  const resp = await request({
+    feat: '/api/draft',
+    method: Method.GET,
+    data
+  });
+
+  return resp.data;
 }
 
 type II18nReturn = (key: string, foo?: {[k: string]: any}) => string;
