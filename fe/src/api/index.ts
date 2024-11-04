@@ -89,8 +89,8 @@ export function alter(data: any) {
   return request({ feat: '/api/dict', method: Method.POST, data });
 }
 
-export function release(ids: string[]) {
-  return request({ feat: '/api/release', method: Method.GET, data: { ids } });
+export function release(scope: string, language: string, keys: string[]) {
+  return request({ feat: '/api/release', method: Method.GET, data: { scope, language, keys } });
 }
 
 export function publish(scope: string, language: string) {
@@ -114,7 +114,7 @@ export async function loadDraft({ pageNo, pageSize, scope, language, key, value 
   language && language?.length && (data.language = language);
 
   const resp = await request({
-    feat: '/api/draft',
+    feat: '/api/diff',
     method: Method.GET,
     data
   });

@@ -8,6 +8,7 @@ const Header = Layout.Header;
 const Content = Layout.Content;
 
 export default function ReleasePage() {
+  const [query, setQuery] = useState<Partial<{scope: string; language: string}>>({});
   const [tableSelected, setTableSelect] = useState<string[]>([]);
   const [data, setData] = useState<ITableMod>({
     list: [],
@@ -21,16 +22,22 @@ export default function ReleasePage() {
     setData({ ...resp, pageNo: p.pageNo, pageSize: p.pageSize });
   }, []);
 
-  useEffect(() => {
-    _loadTable({ pageNo: 1, pageSize: 20 });
-  }, [_loadTable]);
-
-  const handleRelease = async () => {
+  const handleRelease = useCallback(async () => {
     Message.info({ content: 'ok' });
-    console.log(tableSelected);
-    await release(tableSelected);
+    const { scope = '_', language = '' } = query;
+    await release(scope, language, tableSelected);
     setTableSelect([]);
-  };
+  }, [query, tableSelected]);
+
+  useEffect(() => {
+    const { searchParams } = new URL(window.location.href);
+    const scope = searchParams.get('scope') || '_';
+    const language = searchParams.get('language') || 'en';
+    const pageNo = Number(searchParams.get('pageNo')) || 1;
+    setQuery({ scope, language });
+
+    _loadTable({ scope, language, pageNo, pageSize: 20 } as any);
+  }, [_loadTable]);
 
   return (
     <Content style={{ padding: '0 24px 24px', justifyContent: 'start' }}>

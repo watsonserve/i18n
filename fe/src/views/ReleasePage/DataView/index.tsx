@@ -149,7 +149,9 @@ export default function DataView(props: ITableDataProps) {
 
   const batch = useMemo(() => (!onSelect ? undefined : {
     selectedRowKeys: selected,
-    onChange: onSelect,
+    onChange: (keys: (string | number)[], rows: IList[]) => {
+      onSelect(rows.map(item => item.key));
+    },
   }), [selected, onSelect]);
 
 
@@ -167,7 +169,7 @@ export default function DataView(props: ITableDataProps) {
       loading={loading}
       columns={columns}
       data={data.list}
-      rowKey="id"
+      rowKey="key"
       pagination={pagination}
       onChange={onChangeTable}
       rowSelection={batch}
