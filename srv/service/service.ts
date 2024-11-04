@@ -111,7 +111,15 @@ export async function selectDraft(params: ISelectQuery) {
 
 
 export async function loadFile(language: string, scope = '_') {
-  const strContent = await fs.readFile(path.resolve(STORE_PATH, `${scope}${language}.json`), 'utf-8');
-  const result = JSON.parse(strContent);
-  return Object.entries(result).map(([key, value]) => ({ scope, language, key, value }));
+  try {
+    const strContent = await fs.readFile(path.resolve(STORE_PATH, `${scope}_${language}.json`), 'utf-8');
+    return JSON.parse(strContent);
+  } catch (err) {
+
+  }
+  return {};
+}
+
+export async function writeFile(language: string, scope: string, data: Record<string, string>) {
+  return fs.writeFile(path.resolve(STORE_PATH, `${scope}_${language}.json`), JSON.stringify(data), 'utf-8');
 }

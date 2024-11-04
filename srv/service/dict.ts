@@ -1,5 +1,6 @@
-import { WordModel } from '../schema';
+import { IWord, WordModel } from '../schema';
 import { wrapArray } from '../utils';
+import { loadFile, writeFile } from './service';
 
 enum EnUsing {
   DRAFT = 1,
@@ -120,4 +121,61 @@ export async function select(params: ISelectQuery) {
       total
     }
   };
+}
+
+
+export async function diff(scope: string, language: string) {
+  const [docs, kvMap] = await Promise.all([
+    WordModel.find<IWord>({ scope, language }, { key: 1, value: 1, _id: 0 }),
+    loadFile(language, scope)
+  ]);
+
+  const addList = [];
+  const modList = [];
+  for (const { key, value } of docs) {
+    const onLineVal = kvMap[key];
+
+    // not found
+    if (undefined === onLineVal) {
+      addList.push({ scope, key, value, language, opt: 'add' });
+      continue;
+    }
+
+    delete kvMap[key];
+    // not same
+    if (onLineVal !== value) {
+      modList.push({ scope, key, value, language, opt: 'mod', lastValue: onLineVal });
+    }
+  }
+  const delList = Object.entries(kvMap).map(item => ({ scope, key: item[0], value: item[1], language, opt: 'del' }));
+  const list = [...addList, ...modList, ...delList];
+
+  return {
+    stat: 0,
+    msg: 'success',
+    data: {
+      list,
+      total: list.length,
+    }
+  };
+}
+
+export async function release(scope: string, language: string, keys: string[]) {
+  const [docs, kvMap] = await Promise.all([
+    WordModel.find<IWord>({ scope, language, key: { $in: keys } }, { key: 1, value: 1, _id: 0 }),
+    loadFile(language, scope)
+  ]);
+
+  keys.forEach(key => {
+    delete kvMap[key];
+  });
+
+  const nextData = docs.reduce((pre, item) => {
+    pre[item.key] = item.value;
+    return pre;
+  }, kvMap);
+
+  await writeFile(language, scope, nextData);
+
+  return { stat: 0, msg: 'success' };
 }

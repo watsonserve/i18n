@@ -1,5 +1,5 @@
 import express from 'express';
-import { select, insert, remove, modifyKey, modifyValue, selectDraft, release, selectScopes } from './service';
+import { select, insert, remove, modifyKey, modifyValue, diff, release, selectScopes } from './service';
 
 const router = express.Router();
 
@@ -60,9 +60,10 @@ router.get('/scopes', async (req, resp) => {
   }
 });
 
-router.get('/draft', async (req, resp) => {
+router.get('/diff', async (req, resp) => {
   try {
-    const res = await selectDraft(req.query as any);
+    const { scope = '', language = '' } = req.query || {};
+    const res = await diff(scope.toString(), language.toString());
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });
@@ -71,8 +72,8 @@ router.get('/draft', async (req, resp) => {
 
 router.get('/release', async (req, resp) => {
   try {
-    const ids = (req.query.ids as string).split(',') || [];
-    const res = await release(ids);
+    const { scope = '', language = '', keys = '' } = req.query || {};
+    const res = await release(scope.toString(), language.toString(), keys.toString().split(','));
     resp.send(res);
   } catch(err: any) {
     resp.send({ stat: -1, msg: err.message });

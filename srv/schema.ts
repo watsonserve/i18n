@@ -1,6 +1,15 @@
 import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
 
+export interface IWord {
+  _id: string;
+  scope: string;
+  language: string;
+  key: string;
+  value: string;
+  update_time: number;
+}
+
 const wordModel = new Schema({
   scope: {
     type: String,

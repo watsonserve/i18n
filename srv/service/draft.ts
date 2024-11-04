@@ -37,39 +37,6 @@ async function publish({ scope, language }: any) {
   return { stat: 0, msg: 'success' };
 }
 
-export async function release(ids: string[]) {
-  const [docs, draft] = await Promise.all([
-    WordModel.find({ _id: { $in: ids } }),
-    WordDraftModel.find({ _id: { $in: ids } })
-  ]);
-  const rawIds = new Set(docs.map(({ _doc }: any) => _doc._id.toString()));
-  const adds: any[] = [];
-  const removes: any[] = [];
-  const modifies: any[] = [];
-  const publishSet = new Set<string>();
-  draft.forEach(({ _doc }: any) => {
-    const { _id, scope, language } = _doc;
-    publishSet.add(`${scope}/${language}`);
-    const id = _id.toString();
-    const chan = !_doc.scope ? removes : rawIds.has(id) ? modifies : adds;
-    chan.push({ ..._doc, _id: id });
-  });
-  await Promise.all([
-    WordModel.insertMany(adds),
-    WordModel.deleteMany({ _id: { $in: removes.map(item => item._id) } }),
-    modifies.map(item => WordModel.updateOne({ _id: item._id }, item))
-  ]);
-  const publishFiles = [...publishSet].map(value => {
-    const [scope, language] = value.split('/');
-    return publish({ scope, language });
-  });
-
-  await Promise.all([
-    WordDraftModel.deleteMany({ _id: { $in: ids } }),
-    ...publishFiles
-  ]);
-  return { stat: 0, msg: 'success' };
-}
 
 export async function selectDraft(params: ISelectQuery) {
   let { language, scope, key, value, pageNo = 0, pageSize = 0, isDraft = false } = params;
