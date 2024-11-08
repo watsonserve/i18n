@@ -8,7 +8,7 @@ import createError from 'http-errors';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import apiRouter from './apis';
-import { MONGO_ADDRESS, PORT } from './cfg';
+import { MONGO_ADDRESS, PORT, STORE_PATH } from './cfg';
 
 const debug = require('debug')('translate:server');
 
@@ -33,14 +33,14 @@ async function gen() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
-  app.use(express.static(path.join(__dirname, 'www')));
+  app.use(express.static(STORE_PATH));
   app.use('/api', apiRouter);
 
   // catch 404 and forward to error handler
   app.use((req: any, res: any, next: any) => {
     if (req.url.startsWith('/api/')) return next(createError(404));
 
-    res.sendFile(path.join(__dirname, 'www', 'index.html'));
+    res.sendFile(path.join(STORE_PATH, 'index.html'));
   });
 
   // error handler
