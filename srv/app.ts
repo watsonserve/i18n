@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import apiRouter from './apis';
 import { MONGO_ADDRESS, PORT, STORE_PATH } from './cfg';
+import { authGate } from './utils';
 
 const debug = require('debug')('translate:server');
 
@@ -34,13 +35,24 @@ async function gen() {
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
   app.use(express.static(STORE_PATH));
+  app.use((req, resp, next) => {
+    const sessionId = req.cookies.sess || '';
+
+    if (!sessionId) {
+      req.xhr
+        ? resp.json({ stat: 401, msg: 'Unauthorized', data: authGate(req.url) })
+        : resp.redirect(302, authGate(req.url));
+    }
+    next();
+  });
   app.use('/api', apiRouter);
 
   // catch 404 and forward to error handler
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: any, resp: any, next: any) => {
     if (req.url.startsWith('/api/')) return next(createError(404));
-
-    res.sendFile(path.join(STORE_PATH, 'index.html'));
+    // resp.header.
+    // resp.status(302);
+    resp.sendFile(path.join(STORE_PATH, 'index.html'));
   });
 
   // error handler
