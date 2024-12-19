@@ -39,7 +39,9 @@ async function request(options: IRequestOptions): Promise<any> {
 
   const opts: any = {
     method,
-    headers: {},
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    },
     cache: 'no-cache',
     credentials: 'include'
   };
@@ -57,9 +59,20 @@ async function request(options: IRequestOptions): Promise<any> {
   }
   feat = url.toString();
 
+  let errMsg = '';
   const resp = await fetch(feat, opts);
-  if (!resp.ok) return Promise.reject(new Error(resp.statusText || String(resp.status)));
-  return resp.json();
+  const body = await resp.json().catch(err => {
+    errMsg = err.message;
+    return null;
+  });
+  if (!resp.ok || body.stat) {
+    if (resp.status === 401) {
+      window.location.href = body.data;
+      return;
+    }
+    return Promise.reject(new Error(errMsg || resp.statusText || String(resp.status)));
+  }
+  return body;
 }
 
 export async function loadTable({ pageNo, pageSize, scope, language, key, value }: ITableReq): Promise<ILoadTableResp> {
