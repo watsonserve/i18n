@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'crypto';
 import path from 'path';
 import http from 'http';
 import mongoose from 'mongoose';
@@ -8,7 +9,9 @@ import createError from 'http-errors';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
 import apiRouter from './apis';
-import { MONGO_ADDRESS, PORT, STORE_PATH } from './cfg';
+import { AUTH_PATH, MONGO_ADDRESS, PORT, STORE_PATH } from './cfg';
+import { authGate, genSign } from './utils';
+import sessMgr from './sess';
 
 const debug = require('debug')('translate:server');
 
@@ -34,13 +37,36 @@ async function gen() {
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
   app.use(express.static(STORE_PATH));
+  
+  app.use(async (req, resp, next) => {
+    const sess = await sessMgr.load(req.cookies?.['uss']);
+    if (sess || req.method === 'GET' && req.path === AUTH_PATH) return next();
+
+    const pass = authGate(req.url);
+    req.xhr
+      ? resp.status(401).json({ stat: 401, msg: 'Unauthorized', data: pass })
+      : resp.redirect(302, pass);
+  });
+  
+  app.get('/auth', async (req, resp) => {
+    const { stamp, rd, state, code } = req.query as Record<string, string>;
+    const sign = genSign(stamp, rd);
+    if (state !== sign) return resp.json({ stat: -1, msg: 'auth faild' });
+  
+    const uss = randomUUID();
+    sessMgr.put(uss, code, { maxAge: 86400 });
+    resp.cookie('uss', uss, { maxAge: 86400, httpOnly: true, signed: true })
+    resp.redirect(302, rd);
+  });
+
   app.use('/api', apiRouter);
 
   // catch 404 and forward to error handler
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: any, resp: any, next: any) => {
     if (req.url.startsWith('/api/')) return next(createError(404));
-
-    res.sendFile(path.join(STORE_PATH, 'index.html'));
+    // resp.header.
+    // resp.status(302);
+    resp.sendFile(path.join(STORE_PATH, 'index.html'));
   });
 
   // error handler
