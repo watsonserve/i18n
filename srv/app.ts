@@ -42,7 +42,7 @@ async function gen() {
     const sess = await sessMgr.load(req.cookies?.['uss']);
     if (sess || req.method === 'GET' && req.path === AUTH_PATH) return next();
 
-    const pass = authGate(req.url);
+    const pass = authGate(req.headers.referer || '');
     req.xhr
       ? resp.status(401).json({ stat: 401, msg: 'Unauthorized', data: pass })
       : resp.redirect(302, pass);
@@ -55,7 +55,7 @@ async function gen() {
   
     const uss = randomUUID();
     sessMgr.put(uss, code, { maxAge: 86400 });
-    resp.cookie('uss', uss, { maxAge: 86400, httpOnly: true, signed: true })
+    resp.cookie('uss', uss, { maxAge: 86400, httpOnly: true })
     resp.redirect(302, rd);
   });
 

@@ -1,11 +1,11 @@
 class SessMgr {
-  private _map = new Map<string, string>();
+  private _map = new Map<string, { timer: NodeJS.Timeout; v: any }>();
 
   async load(k: string) {
-    const str = this._map.get(k);
-    if (!str) return null;
+    const value = this._map.get(k);
+    if (!value) return null;
 
-    const { v } = JSON.parse(str);
+    const { v } = value;
     return v;
   }
 
@@ -13,8 +13,8 @@ class SessMgr {
     const timer = setTimeout(() => {
       clearTimeout(timer);
       this._map.delete(k);
-    }, opt.maxAge);
-    this._map.set(k, JSON.stringify({ timer, v }));
+    }, opt.maxAge * 1000);
+    this._map.set(k, { timer, v });
   }
 };
 

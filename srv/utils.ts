@@ -15,6 +15,7 @@ export function genSign(stamp: string, redirect: string) {
 }
 
 export function authGate(redirect: string, scope = '', rt = 'code') {
+  redirect = redirect || '/';
   const stamp = Date.now().toString();
   const sign = genSign(stamp, redirect);
 
